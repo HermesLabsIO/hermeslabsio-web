@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HermesLabsIO | MRI Predictor</title>
+  <meta name="description" content="MRI-derived risk stratification for early Alzheimer's research, powered by NeuProScan." />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0f1f28;
+      --slate: #203647;
+      --muted: #4f616c;
+      --paper: #f6f2ea;
+      --sand: #eadfcf;
+      --accent: #0f6b66;
+      --accent-2: #d9772a;
+      --accent-3: #1e4b7a;
+      --white: #ffffff;
+      --shadow: 0 20px 60px rgba(15, 31, 40, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(900px 500px at 78% -10%, rgba(184, 227, 215, 0.85) 0%, rgba(184, 227, 215, 0) 60%),
+        radial-gradient(800px 600px at -10% 15%, rgba(243, 210, 164, 0.9) 0%, rgba(243, 210, 164, 0) 62%),
+        var(--paper);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(32, 54, 71, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(32, 54, 71, 0.06) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .container {
+      width: min(1200px, 92vw);
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(16px);
+      background: rgba(246, 242, 234, 0.8);
+      border-bottom: 1px solid rgba(32, 54, 71, 0.08);
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0;
+      gap: 20px;
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo img {
+      width: 36px;
+      height: 36px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .nav-links a {
+      position: relative;
+      padding-bottom: 4px;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .nav-links a:hover::after {
+      width: 100%;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--white);
+      box-shadow: var(--shadow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 25px 60px rgba(15, 107, 102, 0.2);
+    }
+
+    .btn-secondary {
+      border-color: rgba(32, 54, 71, 0.2);
+      background: rgba(255, 255, 255, 0.65);
+      color: var(--slate);
+    }
+
+    .hero {
+      padding: 88px 0 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 48px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent-3);
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 32px;
+      height: 2px;
+      background: var(--accent-3);
+      display: inline-block;
+    }
+
+    h1 {
+      font-family: "Fraunces", "Times New Roman", serif;
+      font-size: clamp(2.6rem, 4vw, 4.4rem);
+      line-height: 1.05;
+      margin-bottom: 24px;
+      color: var(--slate);
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 560px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 28px;
+    }
+
+    .hero-card {
+      background: var(--white);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(15, 107, 102, 0.08), rgba(217, 119, 42, 0.08));
+      opacity: 0.6;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(15, 107, 102, 0.1);
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.85rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-metric {
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-metric strong {
+      font-size: 1.15rem;
+      display: block;
+      color: var(--slate);
+    }
+
+    .hero-metric span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    section {
+      padding: 70px 0;
+    }
+
+    .section-title {
+      font-family: "Fraunces", "Times New Roman", serif;
+      font-size: clamp(1.8rem, 2.8vw, 2.6rem);
+      margin-bottom: 18px;
+      color: var(--slate);
+    }
+
+    .section-subtitle {
+      color: var(--muted);
+      max-width: 700px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 36px;
+      align-items: center;
+    }
+
+    .highlight {
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+    }
+
+    .highlight h4 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      color: var(--slate);
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .card ul {
+      padding-left: 20px;
+    }
+
+    .note {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(15, 31, 40, 0.06);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-top: 26px;
+    }
+
+    .figure-card {
+      background: rgba(255, 255, 255, 0.75);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .caption {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .media-card {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .media-card img {
+      border-radius: 18px;
+    }
+
+    .cta {
+      background: linear-gradient(135deg, rgba(15, 107, 102, 0.12), rgba(217, 119, 42, 0.12));
+      border-radius: 32px;
+      padding: 42px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .footer {
+      padding: 40px 0 60px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .reveal {
+      animation: fadeUp 0.8s ease forwards;
+      opacity: 0;
+      transform: translateY(18px);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .nav-links {
+        display: none;
+      }
+      .hero {
+        padding-top: 60px;
+      }
+      .cta {
+        padding: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <div class="logo">
+        <img src="static/logo.png" alt="NeuProScan" />
+        HermesLabsIO
+      </div>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="#results">Evidence</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#inputs">Inputs</a>
+      </nav>
+      <a class="btn btn-primary" href="mailto:hello@hermeslabs.io">Request Demo</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="container hero" id="top">
+      <div class="reveal" style="animation-delay: 0.05s;">
+        <span class="eyebrow">MRI Predictor</span>
+        <h1>MRI-derived risk stratification for early Alzheimer's research.</h1>
+        <p>
+          NeuProScan investigates MRI biomarkers that may indicate elevated risk earlier in the disease trajectory,
+          helping research teams prioritize PET confirmation, enrich cohorts, and track longitudinal change.
+        </p>
+        <span class="note">For research use only. Not cleared for clinical diagnosis.</span>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="mailto:hello@hermeslabs.io">Request technical brief</a>
+          <a class="btn btn-secondary" href="#results">See evidence</a>
+        </div>
+      </div>
+      <div class="hero-card reveal" style="animation-delay: 0.15s;">
+        <span class="pill">Signal Snapshot</span>
+        <div class="hero-metric">
+          <strong>MRI-first triage</strong>
+          <span>Ranks patients for confirmatory PET follow-up.</span>
+        </div>
+        <div class="hero-metric">
+          <strong>Model transparency</strong>
+          <span>Slice-level insights to support review.</span>
+        </div>
+        <div class="hero-metric">
+          <strong>Research ready</strong>
+          <span>Built for cohort enrichment and longitudinal studies.</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="context">
+      <div class="container split">
+        <div class="reveal" style="animation-delay: 0.05s;">
+          <h2 class="section-title">Why an MRI predictor is useful.</h2>
+          <p class="section-subtitle">
+            Newly approved anti-amyloid therapies such as
+            <a href="https://www.nejm.org/doi/full/10.1056/NEJMoa2212948" target="_blank" rel="noopener">Lecanemab</a>
+            and
+            <a href="https://www.ncbi.nlm.nih.gov/books/NBK573062/" target="_blank" rel="noopener">Aducanemab</a>
+            are typically confirmed with amyloid PET imaging, which can be costly and resource-intensive.
+            MRI is widely available and less expensive, yet early-stage detection can be variable.
+            Literature reports false-positive and false-negative rates in the ~27-29% range for early Alzheimer's
+            (<a href="https://www.cochrane.org/CD009628/DEMENTIA_how-accurate-magnetic-resonance-imaging-early-diagnosis-dementia-due-alzheimers-disease-people-mild" target="_blank" rel="noopener">Cochrane review</a>).
+          </p>
+        </div>
+        <div class="highlight reveal" style="animation-delay: 0.12s;">
+          <h4>Research framing</h4>
+          <p>
+            NeuProScan is positioned as a research tool to improve MRI-based risk stratification, reduce unnecessary
+            PET utilization, and identify cohorts for deeper evaluation.
+          </p>
+        </div>
+      </div>
+      <div class="container cards">
+        <div class="card reveal" style="animation-delay: 0.15s;">
+          <h3>Planning ahead</h3>
+          <p>
+            Earlier signals can support long-term planning for patients and care teams while further diagnostics
+            are scheduled.
+          </p>
+        </div>
+        <div class="card reveal" style="animation-delay: 0.2s;">
+          <h3>Trial readiness</h3>
+          <p>
+            Research cohorts benefit from earlier identification of likely converters for clinical trial recruitment.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="results">
+      <div class="container">
+        <h2 class="section-title reveal" style="animation-delay: 0.05s;">Results snapshot</h2>
+        <p class="section-subtitle reveal" style="animation-delay: 0.1s;">
+          Retrospective evaluation on a cohort labeled healthy at baseline suggests the model can flag a large
+          share of later converters. Performance varies by site and protocol and should be validated per deployment.
+        </p>
+        <div class="cards">
+          <div class="card reveal" style="animation-delay: 0.15s;">
+            <ul>
+              <li>Baseline clinician assessment labeled patients as cognitively healthy.</li>
+              <li>Roughly one-third developed Alzheimer's within follow-up windows.</li>
+              <li>NeuProScan flagged about 88% of later converters in the retrospective analysis.</li>
+            </ul>
+          </div>
+          <div class="card reveal" style="animation-delay: 0.2s;">
+            <p>
+              These results are research findings and do not represent a cleared diagnostic claim.
+              Prospective validation is required for clinical use.
+            </p>
+          </div>
+        </div>
+        <div class="figure-grid">
+          <div class="figure-card reveal" style="animation-delay: 0.25s;">
+            <img src="static/mripredictor/confusion-matrix.png" alt="Confusion matrix" />
+            <p class="caption">Confusion matrix from retrospective evaluation.</p>
+          </div>
+          <div class="figure-card reveal" style="animation-delay: 0.3s;">
+            <img src="static/mripredictor/ci-statistic.png" alt="Confidence interval statistic" />
+            <p class="caption">Confidence interval summary of key metrics.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="container split">
+        <div class="reveal" style="animation-delay: 0.05s;">
+          <h2 class="section-title">Workflow and platform context</h2>
+          <p class="section-subtitle">
+            NeuProScan provides a configurable AI workflow for MRI ingestion, feature extraction, and risk scoring.
+            It supports on-device and cloud deployments and allows teams to iterate on custom model variants.
+          </p>
+        </div>
+        <div class="media-card reveal" style="animation-delay: 0.12s;">
+          <img src="static/mripredictor/cogni-scan-2.png" alt="NeuProScan interface" />
+          <p class="caption">Sample interface showing MRI ingestion and review workflow.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="inputs">
+      <div class="container split">
+        <div class="media-card reveal" style="animation-delay: 0.05s;">
+          <img src="static/mripredictor/brain-planes.png" alt="MRI brain planes" />
+          <p class="caption">Axial, coronal, and sagittal planes used for model input selection.</p>
+        </div>
+        <div class="reveal" style="animation-delay: 0.12s;">
+          <h2 class="section-title">Slice selection strategy</h2>
+          <p class="section-subtitle">
+            Each MRI scan includes hundreds of slices. NeuProScan selects a focused subset across axial, coronal,
+            and sagittal planes to balance signal capture with model efficiency. Current experiments use up to nine
+            slices, including central and adjacent views, to capture structural change while limiting noise.
+          </p>
+          <a class="btn btn-secondary" href="mailto:hello@hermeslabs.io">Discuss model variants</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="comparison">
+      <div class="container">
+        <h2 class="section-title reveal" style="animation-delay: 0.05s;">Comparative analysis</h2>
+        <p class="section-subtitle reveal" style="animation-delay: 0.1s;">
+          Benchmarking across internal baselines helps contextualize performance and guide iteration.
+        </p>
+        <div class="figure-grid">
+          <div class="figure-card reveal" style="animation-delay: 0.15s;">
+            <img src="static/mripredictor/comparisons.png" alt="Comparative performance" />
+            <p class="caption">Comparative results across model variants and baselines.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container">
+      <div class="cta reveal" style="animation-delay: 0.05s;">
+        <h2>Explore the MRI predictor workflow</h2>
+        <p>
+          Collaborate with HermesLabsIO to evaluate MRI-based risk stratification workflows and tailor models for
+          your research program.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-secondary" href="mailto:hello@hermeslabs.io">Start a pilot</a>
+          <a class="btn btn-primary" href="mailto:hello@hermeslabs.io">Request technical brief</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>NeuProScan is research-focused and not cleared for clinical diagnosis.</p>
+      <p>Copyright 2026 HermesLabsIO. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>
